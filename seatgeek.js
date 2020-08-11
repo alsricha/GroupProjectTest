@@ -2,9 +2,10 @@ $(document).ready(function(){
     $('.datepicker').datepicker({});
     $('input.autocomplete').autocomplete({
         data: {
-          "Hiking": null,
-          "Dancing": null,
-          "Kayaking": null,
+          "concerts": null,
+          "sports": null,
+          "music": null,
+          "comedy": null
         },
     });
 });
@@ -53,26 +54,47 @@ setTimeout(function () {
 
 $("#find-event").on("click", function(event){
 
-    event.preventDefault();
+  event.preventDefault();
 
-    // Here we grab the text from the search input box
+  // Here we grab the values from the input fields
+  $("#search-input").prop("required", true);
+  var eventlist = $("#search-input").val();
+  var eventcity = $("#city-input").val();
+  var eventstate =$("#state-input").val();
+  var dateselector =$("#dateselector").val();
+  var page="1";
 
-    var eventlist = $("#autocomplete-input").val();
-    var eventcity = $("#city-input").val();
+  // Here we take Materialize's default dat (MM DD, YYYY) and format it to be YYYY-MM-DD
+  // so it can be passed into the queryURL.
+  
+  function formatdate(datestring){
+    var months  = ["jan", "feb" , "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+    var newdate = datestring.replace(",", "").split(" ");
+    var year = newdate[2];
+    var day = newdate[1];
+    var month = ("0" + (months.indexOf(newdate[0].toLowerCase())+1)).slice(-2);
+    current = year+"-"+month+"-"+day;
+    console.log(current);
+    return current}
+  
+  
+  var queryURL = "https://api.seatgeek.com/2/events?venue.city="+ eventcity + "&venue.state="+ eventstate +  "&taxonomies.name=" + eventlist +/* "&datetime_utc=" + formatdate(dateselector) +  */ "&per_page=5&page="+ page + "&client_id=MjEyNDUyODZ8MTU5NjkxNDAwNi40OQ";
 
-    //var dateselector = $("#date").val();
-    
-   var queryURL = "https://api.seatgeek.com/2/events?venue.city=" + eventcity + "&taxonomies.name=" + eventlist + "&client_id=MjEyNDUyODZ8MTU5NjkxNDAwNi40OQ";
-   console.log(queryURL);
-   
-    $.ajax({
-        url: queryURL,
-        method: "GET"
-    }).then(function(response){
-    
+ console.log(queryURL);
+ //Checklist of variables working
+ // - eventcity
+ // - eventstate
+ // - taxonomies
 
-        //Log the resulting onject
-        console.log(response);
+ 
+  $.ajax({
+      url: queryURL,
+      method: "GET"
+  }).then(function(response){
+  
+
+      //Log the resulting onject
+      console.log(response);
 
        var eventDetails= $("#event-view");
 
@@ -80,39 +102,31 @@ $("#find-event").on("click", function(event){
          var temp =`
               <div class="card">
                 <div class="card-image">
-                  <img src="images/sample-1.jpg">
+                  <img src=${event.performers[0].image}>
                   <span class="card-title">${event.title}</span>
                   <a class="btn-floating halfway-fab waves-effect waves-light red"><i class="material-icons">add</i></a>
                 </div>
                 <div class="card-content">
                   <p>${event.description}</p>
-                  <p>${event.type}</p>
+                  <p>Category: ${event.type}</p>
+                  <p>Average Price: $${event.stats.average_price}</p>
+                  <p>Location: ${event.venue.address}</p>
+                  <p align="right">${event.venue.extended_address}</p>
                 </div>
+                <div class="card-action">
+                  <a href=${event.venue.url}>View Details</a>
               </div>
             </div>
           </div>`;
 
          eventDetails.append(temp);
-       })
-
-       //Original -Working
-       /* var temp = `
-          <div class = "card">
-            <h2>${event.title}</h2>
-            <p>${event.type}</p>
-            <p>${event.description}</p>
-          </div> `; */
-
-    
-        
-
-        
+       });     
     });
-
-    //Clear Results
-    $("#clear-event").on("click", function(event) {
-        event.preventDefault ();
-        $("event-view").remove("event-view");
-    })
-    
-})
+  
+    //Load More Events Button
+    $(".load-more-button").on("click", function(){
+      page ++;
+      //run queryURL again
+      eventDetails.append(temp);
+    });
+});
